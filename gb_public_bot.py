@@ -4,10 +4,32 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from datetime import datetime
 import os
 
-# Path to save the log file
-LOG_FILE = "bot_interactions.log"
+# =========================
+# Configurações e Arquivos
+# =========================
 
-# Function to write logs
+LOG_FILE = "bot_interactions.log"
+INSTRUCTIONS_FILE = "instructions.txt"
+TOKEN_FILE = "token.txt"
+
+# =========================
+# Funções Utilitárias
+# =========================
+
+# Função para ler token do bot
+def load_token(file_path=TOKEN_FILE):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return f.read().strip()
+
+# Função para carregar instruções do arquivo
+def load_instructions(file_path=INSTRUCTIONS_FILE):
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""  # Se não existir, retorna vazio
+
+# Função para gravar logs
 def log_interaction(user_id, username, user_message, bot_reply):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -16,45 +38,55 @@ def log_interaction(user_id, username, user_message, bot_reply):
         f.write(f"Bot: {bot_reply}\n")
         f.write("-" * 50 + "\n")
 
-# Function to read the telegram bot token from a file
-def load_token(file_path="token.txt"):
-    with open(file_path, "r") as file:
-        return file.read().strip()
+# =========================
+# Comunicação com o Ollama
+# =========================
 
-# Your Telegram bot token here
-BOT_TOKEN = load_token()
-
-# Function to send user message to Ollama's Gemma 3 and get a response
 def query_gemma3(message_text):
     try:
+        system_instructions = load_instructions()
+
         response = ollama.chat(
             model="gemma3:4b",
-            messages=[{"role": "user", "content": message_text}]
+            messages=[
+                {"role": "system", "content": system_instructions},  # Instruções fixas
+                {"role": "user", "content": message_text}
+            ]
         )
-        return response['message']['content']
+        return response["message"]["content"]
     except Exception as e:
         return f"Error interacting with AI model: {e}"
 
-# Handler for Telegram messages
+# =========================
+# Handlers do Telegram
+# =========================
+
+# Responde mensagens comuns
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     user_id = update.message.from_user.id
     username = update.message.from_user.username or "Unknown"
-    
+
     reply = query_gemma3(user_message)
 
-    # Log the conversation
     log_interaction(user_id, username, user_message, reply)
 
     await update.message.reply_text(reply)
 
-# Start command handler
+# Comando /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Hi! I’m your AI-powered Telegram bot running Gemma 3 locally. Send me a message!"
+        "Oi! Eu sou seu bot com Gemma 3 rodando localmente.\n"
+        "Minhas respostas seguem as instruções do arquivo instructions.txt."
     )
 
+# =========================
+# Execução do Bot
+# =========================
+
 if __name__ == "__main__":
+    BOT_TOKEN = load_token()
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))

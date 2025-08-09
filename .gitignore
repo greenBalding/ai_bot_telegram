@@ -3,3 +3,6 @@ token.txt
 
 # Ignorar log de interações
 bot_interactions.log
+
+# Ignorar instruções de uso
+instructions.txt
