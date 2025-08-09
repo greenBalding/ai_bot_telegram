@@ -1,0 +1,5 @@
+# Ignorar token do bot
+token.txt
+
+# Ignorar log de interações
+bot_interactions.log
