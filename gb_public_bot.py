@@ -84,10 +84,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     username = update.message.from_user.username or "Unknown"
 
-    if bot_username.lower() in user_message.lower() or (
+    is_private = update.message.chat.type == "private"
+    is_mentioned = bot_username.lower() in user_message.lower()
+    is_reply_to_bot = (
         update.message.reply_to_message
         and update.message.reply_to_message.from_user.id == context.bot.id
-    ):
+    )
+
+#   print(f"Received message from {user_id}: {user_message} (private={is_private}, mentioned={is_mentioned}, reply_to_bot={is_reply_to_bot})")
+
+    if is_private or is_mentioned or is_reply_to_bot:
         clean_message = user_message.replace(bot_username, "").strip()
         reply = query_ollama(clean_message)
         log_interaction(user_id, username, user_message, reply)
@@ -101,10 +107,16 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username or "Unknown"
     caption = update.message.caption or "Descreva a imagem"
 
-    if (caption and bot_username.lower() in caption.lower()) or (
+    is_private = update.message.chat.type == "private"
+    is_mentioned = caption and bot_username.lower() in caption.lower()
+    is_reply_to_bot = (
         update.message.reply_to_message
         and update.message.reply_to_message.from_user.id == context.bot.id
-    ):
+    )
+
+#   print(f"Received image from {user_id}: caption='{caption}' (private={is_private}, mentioned={is_mentioned}, reply_to_bot={is_reply_to_bot})")
+
+    if is_private or is_mentioned or is_reply_to_bot:
         caption = caption.replace(bot_username, "").strip()
 
         photo = update.message.photo[-1]
@@ -120,13 +132,13 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         try:
             os.remove(image_path)
-        except:
+        except Exception:
             pass
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Oi! Eu sou seu bot multimodal rodando localmente.\n"
-        "Só vou responder se você me mencionar (@usuario_do_bot) ou responder a uma mensagem minha."
+        "Vou responder suas mensagens privadas ou se me mencionarem em grupos."
     )
 
 # =========================
