@@ -6,3 +6,6 @@ bot_interactions.log
 
 # Ignorar instruções de uso
 instructions.txt
+
+# Ignorar o arquivo de memoria
+memoria.json
